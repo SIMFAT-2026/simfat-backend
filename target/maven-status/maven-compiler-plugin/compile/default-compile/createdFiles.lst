@@ -1,0 +1,16 @@
+com\simfat\backend\controller\AlertRuleController.class
+com\simfat\backend\repository\HeatAlertEventRepository.class
+com\simfat\backend\controller\ForestLossController.class
+com\simfat\backend\controller\DashboardController.class
+com\simfat\backend\model\AlertRule.class
+com\simfat\backend\model\HeatAlertEvent.class
+com\simfat\backend\repository\ForestLossRecordRepository.class
+com\simfat\backend\model\RiskLevel.class
+com\simfat\backend\model\ForestLossRecord.class
+com\simfat\backend\dto\DashboardSummaryDTO.class
+com\simfat\backend\model\Region.class
+com\simfat\backend\repository\RegionRepository.class
+com\simfat\backend\controller\HeatAlertController.class
+com\simfat\backend\controller\RegionController.class
+com\simfat\backend\SimfatBackendApplication.class
+com\simfat\backend\repository\AlertRuleRepository.class

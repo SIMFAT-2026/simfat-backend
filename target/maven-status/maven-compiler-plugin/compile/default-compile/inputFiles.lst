@@ -1,0 +1,16 @@
+C:\Users\Lenovo\Documents\GitHub\Simfat\Simfat-backend\src\main\java\com\simfat\backend\controller\AlertRuleController.java
+C:\Users\Lenovo\Documents\GitHub\Simfat\Simfat-backend\src\main\java\com\simfat\backend\controller\DashboardController.java
+C:\Users\Lenovo\Documents\GitHub\Simfat\Simfat-backend\src\main\java\com\simfat\backend\controller\ForestLossController.java
+C:\Users\Lenovo\Documents\GitHub\Simfat\Simfat-backend\src\main\java\com\simfat\backend\controller\HeatAlertController.java
+C:\Users\Lenovo\Documents\GitHub\Simfat\Simfat-backend\src\main\java\com\simfat\backend\controller\RegionController.java
+C:\Users\Lenovo\Documents\GitHub\Simfat\Simfat-backend\src\main\java\com\simfat\backend\dto\DashboardSummaryDTO.java
+C:\Users\Lenovo\Documents\GitHub\Simfat\Simfat-backend\src\main\java\com\simfat\backend\model\AlertRule.java
+C:\Users\Lenovo\Documents\GitHub\Simfat\Simfat-backend\src\main\java\com\simfat\backend\model\ForestLossRecord.java
+C:\Users\Lenovo\Documents\GitHub\Simfat\Simfat-backend\src\main\java\com\simfat\backend\model\HeatAlertEvent.java
+C:\Users\Lenovo\Documents\GitHub\Simfat\Simfat-backend\src\main\java\com\simfat\backend\model\Region.java
+C:\Users\Lenovo\Documents\GitHub\Simfat\Simfat-backend\src\main\java\com\simfat\backend\model\RiskLevel.java
+C:\Users\Lenovo\Documents\GitHub\Simfat\Simfat-backend\src\main\java\com\simfat\backend\repository\AlertRuleRepository.java
+C:\Users\Lenovo\Documents\GitHub\Simfat\Simfat-backend\src\main\java\com\simfat\backend\repository\ForestLossRecordRepository.java
+C:\Users\Lenovo\Documents\GitHub\Simfat\Simfat-backend\src\main\java\com\simfat\backend\repository\HeatAlertEventRepository.java
+C:\Users\Lenovo\Documents\GitHub\Simfat\Simfat-backend\src\main\java\com\simfat\backend\repository\RegionRepository.java
+C:\Users\Lenovo\Documents\GitHub\Simfat\Simfat-backend\src\main\java\com\simfat\backend\SimfatBackendApplication.java
