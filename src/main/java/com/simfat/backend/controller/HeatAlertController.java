@@ -1,8 +1,11 @@
 package com.simfat.backend.controller;
 
-import com.simfat.backend.model.HeatAlertEvent;
+import com.simfat.backend.dto.ApiResponse;
+import com.simfat.backend.dto.HeatAlertRequestDTO;
+import com.simfat.backend.dto.HeatAlertResponseDTO;
+import com.simfat.backend.service.HeatAlertService;
 import jakarta.validation.Valid;
-import org.springframework.http.HttpStatus;
+import java.util.List;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -17,34 +20,46 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/alerts")
 public class HeatAlertController {
 
+    private final HeatAlertService heatAlertService;
+
+    public HeatAlertController(HeatAlertService heatAlertService) {
+        this.heatAlertService = heatAlertService;
+    }
+
     @GetMapping
-    public ResponseEntity<Void> getAll() {
-        return ResponseEntity.status(HttpStatus.NOT_IMPLEMENTED).build();
+    public ResponseEntity<ApiResponse<List<HeatAlertResponseDTO>>> getAll() {
+        return ResponseEntity.ok(ApiResponse.ok("Alertas obtenidas correctamente", heatAlertService.getAll()));
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Void> getById(@PathVariable String id) {
-        return ResponseEntity.status(HttpStatus.NOT_IMPLEMENTED).build();
+    public ResponseEntity<ApiResponse<HeatAlertResponseDTO>> getById(@PathVariable String id) {
+        return ResponseEntity.ok(ApiResponse.ok("Alerta obtenida correctamente", heatAlertService.getById(id)));
     }
 
     @GetMapping("/region/{regionId}")
-    public ResponseEntity<Void> getByRegion(@PathVariable String regionId) {
-        return ResponseEntity.status(HttpStatus.NOT_IMPLEMENTED).build();
+    public ResponseEntity<ApiResponse<List<HeatAlertResponseDTO>>> getByRegion(@PathVariable String regionId) {
+        return ResponseEntity.ok(ApiResponse.ok(
+            "Alertas por region obtenidas correctamente",
+            heatAlertService.getByRegion(regionId)
+        ));
     }
 
     @PostMapping
-    public ResponseEntity<Void> create(@Valid @RequestBody HeatAlertEvent event) {
-        return ResponseEntity.status(HttpStatus.NOT_IMPLEMENTED).build();
+    public ResponseEntity<ApiResponse<HeatAlertResponseDTO>> create(@Valid @RequestBody HeatAlertRequestDTO event) {
+        return ResponseEntity.ok(ApiResponse.ok("Alerta creada correctamente", heatAlertService.create(event)));
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Void> update(@PathVariable String id, @Valid @RequestBody HeatAlertEvent event) {
-        return ResponseEntity.status(HttpStatus.NOT_IMPLEMENTED).build();
+    public ResponseEntity<ApiResponse<HeatAlertResponseDTO>> update(
+        @PathVariable String id,
+        @Valid @RequestBody HeatAlertRequestDTO event
+    ) {
+        return ResponseEntity.ok(ApiResponse.ok("Alerta actualizada correctamente", heatAlertService.update(id, event)));
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> delete(@PathVariable String id) {
-        return ResponseEntity.status(HttpStatus.NOT_IMPLEMENTED).build();
+    public ResponseEntity<ApiResponse<String>> delete(@PathVariable String id) {
+        heatAlertService.delete(id);
+        return ResponseEntity.ok(ApiResponse.ok("Alerta eliminada correctamente", id));
     }
 }
-

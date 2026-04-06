@@ -1,16 +1,10 @@
-package com.simfat.backend.model;
+package com.simfat.backend.dto;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
-import org.springframework.data.annotation.Id;
-import org.springframework.data.mongodb.core.mapping.Document;
 
-@Document(collection = "regions")
-public class Region {
-
-    @Id
-    private String id;
+public class RegionRequestDTO {
 
     @NotBlank(message = "El nombre de la region es obligatorio")
     @Size(max = 120, message = "El nombre de la region no puede exceder 120 caracteres")
@@ -26,14 +20,6 @@ public class Region {
 
     @Positive(message = "La referencia de bosque debe ser mayor a cero")
     private Double hectareasBosqueReferencia;
-
-    public String getId() {
-        return id;
-    }
-
-    public void setId(String id) {
-        this.id = id;
-    }
 
     public String getNombre() {
         return nombre;
@@ -67,3 +53,4 @@ public class Region {
         this.hectareasBosqueReferencia = hectareasBosqueReferencia;
     }
 }
+

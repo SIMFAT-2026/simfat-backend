@@ -9,5 +9,8 @@ public interface ForestLossRecordRepository extends MongoRepository<ForestLossRe
     List<ForestLossRecord> findByRegionId(String regionId);
 
     List<ForestLossRecord> findByAnio(Integer anio);
-}
 
+    List<ForestLossRecord> findByRegionIdAndAnio(String regionId, Integer anio);
+
+    List<ForestLossRecord> findAllByOrderByAnioAsc();
+}

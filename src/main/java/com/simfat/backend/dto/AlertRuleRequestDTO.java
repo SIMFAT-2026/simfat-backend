@@ -1,18 +1,12 @@
-package com.simfat.backend.model;
+package com.simfat.backend.dto;
 
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
-import org.springframework.data.annotation.Id;
-import org.springframework.data.mongodb.core.mapping.Document;
 
-@Document(collection = "alert_rules")
-public class AlertRule {
-
-    @Id
-    private String id;
+public class AlertRuleRequestDTO {
 
     @NotBlank(message = "El nombre de la regla es obligatorio")
     @Size(max = 120, message = "El nombre no puede exceder 120 caracteres")
@@ -30,14 +24,6 @@ public class AlertRule {
 
     @NotNull(message = "El estado de la regla es obligatorio")
     private Boolean activa;
-
-    public String getId() {
-        return id;
-    }
-
-    public void setId(String id) {
-        this.id = id;
-    }
 
     public String getNombre() {
         return nombre;
@@ -79,3 +65,4 @@ public class AlertRule {
         this.activa = activa;
     }
 }
+

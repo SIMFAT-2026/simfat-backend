@@ -1,8 +1,11 @@
 package com.simfat.backend.controller;
 
-import com.simfat.backend.model.Region;
+import com.simfat.backend.dto.ApiResponse;
+import com.simfat.backend.dto.RegionRequestDTO;
+import com.simfat.backend.dto.RegionResponseDTO;
+import com.simfat.backend.service.RegionService;
 import jakarta.validation.Valid;
-import org.springframework.http.HttpStatus;
+import java.util.List;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -17,29 +20,38 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/regions")
 public class RegionController {
 
+    private final RegionService regionService;
+
+    public RegionController(RegionService regionService) {
+        this.regionService = regionService;
+    }
+
     @GetMapping
-    public ResponseEntity<Void> getAll() {
-        return ResponseEntity.status(HttpStatus.NOT_IMPLEMENTED).build();
+    public ResponseEntity<ApiResponse<List<RegionResponseDTO>>> getAll() {
+        return ResponseEntity.ok(ApiResponse.ok("Regiones obtenidas correctamente", regionService.getAll()));
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Void> getById(@PathVariable String id) {
-        return ResponseEntity.status(HttpStatus.NOT_IMPLEMENTED).build();
+    public ResponseEntity<ApiResponse<RegionResponseDTO>> getById(@PathVariable String id) {
+        return ResponseEntity.ok(ApiResponse.ok("Region obtenida correctamente", regionService.getById(id)));
     }
 
     @PostMapping
-    public ResponseEntity<Void> create(@Valid @RequestBody Region region) {
-        return ResponseEntity.status(HttpStatus.NOT_IMPLEMENTED).build();
+    public ResponseEntity<ApiResponse<RegionResponseDTO>> create(@Valid @RequestBody RegionRequestDTO region) {
+        return ResponseEntity.ok(ApiResponse.ok("Region creada correctamente", regionService.create(region)));
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Void> update(@PathVariable String id, @Valid @RequestBody Region region) {
-        return ResponseEntity.status(HttpStatus.NOT_IMPLEMENTED).build();
+    public ResponseEntity<ApiResponse<RegionResponseDTO>> update(
+        @PathVariable String id,
+        @Valid @RequestBody RegionRequestDTO region
+    ) {
+        return ResponseEntity.ok(ApiResponse.ok("Region actualizada correctamente", regionService.update(id, region)));
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> delete(@PathVariable String id) {
-        return ResponseEntity.status(HttpStatus.NOT_IMPLEMENTED).build();
+    public ResponseEntity<ApiResponse<String>> delete(@PathVariable String id) {
+        regionService.delete(id);
+        return ResponseEntity.ok(ApiResponse.ok("Region eliminada correctamente", id));
     }
 }
-

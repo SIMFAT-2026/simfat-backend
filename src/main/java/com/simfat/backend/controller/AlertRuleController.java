@@ -1,8 +1,11 @@
 package com.simfat.backend.controller;
 
-import com.simfat.backend.model.AlertRule;
+import com.simfat.backend.dto.AlertRuleRequestDTO;
+import com.simfat.backend.dto.AlertRuleResponseDTO;
+import com.simfat.backend.dto.ApiResponse;
+import com.simfat.backend.service.AlertRuleService;
 import jakarta.validation.Valid;
-import org.springframework.http.HttpStatus;
+import java.util.List;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -17,29 +20,38 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/rules")
 public class AlertRuleController {
 
+    private final AlertRuleService alertRuleService;
+
+    public AlertRuleController(AlertRuleService alertRuleService) {
+        this.alertRuleService = alertRuleService;
+    }
+
     @GetMapping
-    public ResponseEntity<Void> getAll() {
-        return ResponseEntity.status(HttpStatus.NOT_IMPLEMENTED).build();
+    public ResponseEntity<ApiResponse<List<AlertRuleResponseDTO>>> getAll() {
+        return ResponseEntity.ok(ApiResponse.ok("Reglas obtenidas correctamente", alertRuleService.getAll()));
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Void> getById(@PathVariable String id) {
-        return ResponseEntity.status(HttpStatus.NOT_IMPLEMENTED).build();
+    public ResponseEntity<ApiResponse<AlertRuleResponseDTO>> getById(@PathVariable String id) {
+        return ResponseEntity.ok(ApiResponse.ok("Regla obtenida correctamente", alertRuleService.getById(id)));
     }
 
     @PostMapping
-    public ResponseEntity<Void> create(@Valid @RequestBody AlertRule rule) {
-        return ResponseEntity.status(HttpStatus.NOT_IMPLEMENTED).build();
+    public ResponseEntity<ApiResponse<AlertRuleResponseDTO>> create(@Valid @RequestBody AlertRuleRequestDTO rule) {
+        return ResponseEntity.ok(ApiResponse.ok("Regla creada correctamente", alertRuleService.create(rule)));
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Void> update(@PathVariable String id, @Valid @RequestBody AlertRule rule) {
-        return ResponseEntity.status(HttpStatus.NOT_IMPLEMENTED).build();
+    public ResponseEntity<ApiResponse<AlertRuleResponseDTO>> update(
+        @PathVariable String id,
+        @Valid @RequestBody AlertRuleRequestDTO rule
+    ) {
+        return ResponseEntity.ok(ApiResponse.ok("Regla actualizada correctamente", alertRuleService.update(id, rule)));
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> delete(@PathVariable String id) {
-        return ResponseEntity.status(HttpStatus.NOT_IMPLEMENTED).build();
+    public ResponseEntity<ApiResponse<String>> delete(@PathVariable String id) {
+        alertRuleService.delete(id);
+        return ResponseEntity.ok(ApiResponse.ok("Regla eliminada correctamente", id));
     }
 }
-
