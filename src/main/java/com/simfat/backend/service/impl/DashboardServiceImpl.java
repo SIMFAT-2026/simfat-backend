@@ -5,9 +5,11 @@ import com.simfat.backend.dto.CriticalRegionDTO;
 import com.simfat.backend.dto.DashboardSummaryDTO;
 import com.simfat.backend.dto.LossTrendPointDTO;
 import com.simfat.backend.model.AlertRule;
+import com.simfat.backend.model.DashboardRegionSnapshot;
 import com.simfat.backend.model.ForestLossRecord;
 import com.simfat.backend.model.Region;
 import com.simfat.backend.model.RiskLevel;
+import com.simfat.backend.repository.DashboardRegionSnapshotRepository;
 import com.simfat.backend.repository.ForestLossRecordRepository;
 import com.simfat.backend.repository.HeatAlertEventRepository;
 import com.simfat.backend.repository.RegionRepository;
@@ -17,6 +19,7 @@ import java.time.LocalDateTime;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -27,6 +30,7 @@ public class DashboardServiceImpl implements DashboardService {
     private final ForestLossRecordRepository forestLossRepository;
     private final HeatAlertEventRepository heatAlertRepository;
     private final RegionRepository regionRepository;
+    private final DashboardRegionSnapshotRepository snapshotRepository;
     private final AlertRuleService alertRuleService;
 
     @Value("${app.alert.default-loss-threshold:1.0}")
@@ -39,11 +43,13 @@ public class DashboardServiceImpl implements DashboardService {
         ForestLossRecordRepository forestLossRepository,
         HeatAlertEventRepository heatAlertRepository,
         RegionRepository regionRepository,
+        DashboardRegionSnapshotRepository snapshotRepository,
         AlertRuleService alertRuleService
     ) {
         this.forestLossRepository = forestLossRepository;
         this.heatAlertRepository = heatAlertRepository;
         this.regionRepository = regionRepository;
+        this.snapshotRepository = snapshotRepository;
         this.alertRuleService = alertRuleService;
     }
 
@@ -57,7 +63,7 @@ public class DashboardServiceImpl implements DashboardService {
             .map(ForestLossRecord::getHectareasPerdidas)
             .filter(value -> value != null)
             .reduce(0.0, Double::sum));
-        dto.setRegionesCriticas(getCriticalRegions().size());
+        dto.setRegionesCriticas(resolveCriticalRegionsCount());
         dto.setTotalAlertas(Math.toIntExact(heatAlertRepository.count()));
         dto.setAnioMayorPerdida(resolveYearWithHighestLoss(records));
         dto.setTendenciaGeneral(resolveGeneralTrend(trend));
@@ -66,6 +72,25 @@ public class DashboardServiceImpl implements DashboardService {
 
     @Override
     public List<CriticalRegionDTO> getCriticalRegions() {
+        List<DashboardRegionSnapshot> snapshots = snapshotRepository.findAll();
+        if (!snapshots.isEmpty()) {
+            Map<String, String> regionNames = regionRepository.findAll().stream()
+                .collect(Collectors.toMap(Region::getId, Region::getNombre));
+
+            return snapshots.stream()
+                .filter(snapshot -> Set.of("HIGH", "MEDIUM").contains(snapshot.getCriticality()))
+                .map(snapshot -> {
+                    CriticalRegionDTO dto = new CriticalRegionDTO();
+                    dto.setRegionId(snapshot.getRegionId());
+                    dto.setNombreRegion(regionNames.getOrDefault(snapshot.getRegionId(), snapshot.getRegionId()));
+                    dto.setPorcentajePerdidaActual(snapshot.getForestLossCurrentPct());
+                    dto.setEventosCalorRecientes(snapshot.getHeatAlerts7d());
+                    dto.setEstadoCriticidad("HIGH".equals(snapshot.getCriticality()) ? "CRITICA" : "EN_RIESGO");
+                    return dto;
+                })
+                .toList();
+        }
+
         List<Region> regions = regionRepository.findAll();
         LocalDateTime now = LocalDateTime.now();
 
@@ -196,6 +221,16 @@ public class DashboardServiceImpl implements DashboardService {
             .orElse(null);
     }
 
+    private int resolveCriticalRegionsCount() {
+        List<DashboardRegionSnapshot> snapshots = snapshotRepository.findAll();
+        if (snapshots.isEmpty()) {
+            return getCriticalRegions().size();
+        }
+        return (int) snapshots.stream()
+            .filter(snapshot -> Set.of("HIGH", "MEDIUM").contains(snapshot.getCriticality()))
+            .count();
+    }
+
     private String resolveGeneralTrend(List<LossTrendPointDTO> trend) {
         if (trend.size() < 2) {
             return "SIN_DATOS";
@@ -221,4 +256,3 @@ public class DashboardServiceImpl implements DashboardService {
         return Math.round(value * 100.0) / 100.0;
     }
 }
-
