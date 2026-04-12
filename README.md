@@ -1,31 +1,36 @@
-# SIMFAT Backend (MVP)
+# SIMFAT Backend (MVP + OpenEO Sync)
 
-Backend del proyecto **SIMFAT** (Sistema Integrado de Monitoreo y Alerta Temprana Forestal), orientado a registros de perdida de cobertura forestal, eventos de calor y alertas tempranas.
+Backend de **SIMFAT** (Spring Boot + MongoDB) para monitoreo forestal y dashboard.  
+El frontend `simfat-web` consume solo este backend; la integración con openEO se hace internamente via `openeo-service`.
 
-## Stack
+## Arquitectura de integración
 
-- Java 17
-- Spring Boot 3.x
-- Maven
-- MongoDB Atlas
-- API REST
+Flujo principal:
 
-## Arquitectura
+1. `@Scheduled` (o trigger manual) ejecuta sync por regiones.
+2. Se envian jobs NDVI/NDMI a `openeo-service`.
+3. Se registra traza en `openeo_job_runs`.
+4. Si llega valor inline, se hace upsert en `openeo_indicator_observations`.
+5. Se recalcula `dashboard_region_snapshots`.
+6. Endpoints dashboard leen desde Mongo (observations/snapshots), sin consultas live a proveedor por request.
 
-Estructura por capas:
+Colecciones nuevas:
 
-- `config`: CORS, seed de datos y placeholders de seguridad
-- `controller`: endpoints REST
-- `dto`: contratos API (request/response)
-- `model`: entidades MongoDB
-- `repository`: acceso a datos
-- `service`: interfaces de negocio
-- `service/impl`: implementaciones de negocio
-- `exception`: manejo global de errores
+- `openeo_job_runs`
+- `openeo_indicator_observations`
+- `dashboard_region_snapshots`
+
+Indices aplicados:
+
+- `openeo_job_runs`: `jobId` unico, `status + updatedAt(desc)`
+- `openeo_indicator_observations`: `regionId + indicator + observedAt(desc)` y unico compuesto `regionId + indicator + observedAt`
+- `dashboard_region_snapshots`: `regionId` unico, `computedAt(desc)`
 
 ## Variables de entorno
 
-Usa `.env.example` como referencia:
+Usa `.env.example` como referencia.
+
+Base:
 
 - `MONGODB_URI`
 - `SERVER_PORT`
@@ -34,139 +39,77 @@ Usa `.env.example` como referencia:
 - `DEFAULT_LOSS_THRESHOLD`
 - `DEFAULT_HEAT_EVENTS_THRESHOLD`
 
+Integracion openEO:
+
+- `OPENEO_SERVICE_BASE_URL`
+- `OPENEO_SERVICE_TIMEOUT_MS` (default `8000`)
+- `OPENEO_SYNC_ENABLED` (default `true`)
+- `OPENEO_SYNC_CRON` (default cada 15 min: `0 */15 * * * *`)
+
 ## Ejecutar localmente
 
 1. Configura variables de entorno.
-2. Compila:
-   - `mvn clean compile`
+2. Compila y prueba:
+   - `mvn clean test`
 3. Ejecuta:
    - `mvn spring-boot:run`
 
-La API quedara disponible por defecto en `http://localhost:8080`.
+API por defecto: `http://localhost:8080`.
 
-## Endpoints principales
+## Endpoints dashboard
 
-- `GET /api/regions`
-- `GET /api/regions/{id}`
-- `POST /api/regions`
-- `PUT /api/regions/{id}`
-- `DELETE /api/regions/{id}`
-
-- `GET /api/forest-loss`
-- `GET /api/forest-loss/{id}`
-- `GET /api/forest-loss/region/{regionId}`
-- `GET /api/forest-loss/year/{year}`
-- `POST /api/forest-loss`
-- `PUT /api/forest-loss/{id}`
-- `DELETE /api/forest-loss/{id}`
-
-- `GET /api/alerts`
-- `GET /api/alerts/{id}`
-- `GET /api/alerts/region/{regionId}`
-- `POST /api/alerts`
-- `PUT /api/alerts/{id}`
-- `DELETE /api/alerts/{id}`
-
-- `GET /api/rules`
-- `GET /api/rules/{id}`
-- `POST /api/rules`
-- `PUT /api/rules/{id}`
-- `DELETE /api/rules/{id}`
+Compatibles existentes:
 
 - `GET /api/dashboard/summary`
 - `GET /api/dashboard/critical-regions`
 - `GET /api/dashboard/loss-trend`
 - `GET /api/dashboard/alerts-summary`
 
-## Formato de respuesta
+Nuevos MVP:
 
-### Exito
+- `POST /api/dashboard/sync/run?regionId={id}` (`regionId` opcional)
+- `GET /api/dashboard/indicators/latest?regionId={id}&indicator=NDVI|NDMI`
+- `GET /api/dashboard/indicators/series?regionId={id}&indicator=NDVI|NDMI&from=YYYY-MM-DD&to=YYYY-MM-DD&granularity=day|week|month`
+- `GET /api/dashboard/indicators/map?indicator=NDVI|NDMI&from=YYYY-MM-DD&to=YYYY-MM-DD&limit=500`
+- `GET /api/dashboard/data-freshness?regionId={id}`
 
-```json
-{
-  "success": true,
-  "message": "Regiones obtenidas correctamente",
-  "data": [],
-  "timestamp": "2026-04-05T20:10:00"
-}
+Todas las respuestas usan `ApiResponse<T>`.
+
+## Ejemplos de uso
+
+Trigger manual de sync:
+
+```bash
+curl -X POST "http://localhost:8080/api/dashboard/sync/run?regionId=REGION_ID"
 ```
 
-### Error
+Ultimo indicador:
 
-```json
-{
-  "success": false,
-  "status": 400,
-  "error": "Validation Error",
-  "message": "Uno o mas campos son invalidos",
-  "path": "/api/regions",
-  "timestamp": "2026-04-05T20:12:00",
-  "validationErrors": {
-    "nombre": "El nombre de la region es obligatorio"
-  }
-}
+```bash
+curl "http://localhost:8080/api/dashboard/indicators/latest?regionId=REGION_ID&indicator=NDVI"
 ```
 
-## Ejemplos Postman / Thunder Client
+Serie semanal:
 
-### Crear region
-
-`POST /api/regions`
-
-```json
-{
-  "nombre": "Region Sur Bosque Humedo",
-  "codigo": "SIM-RS-02",
-  "zona": "SUR",
-  "hectareasBosqueReferencia": 240000
-}
+```bash
+curl "http://localhost:8080/api/dashboard/indicators/series?regionId=REGION_ID&indicator=NDMI&from=2026-03-01&to=2026-03-31&granularity=week"
 ```
 
-### Crear registro forestal
+## Rendimiento y observabilidad
 
-`POST /api/forest-loss`
+- Lecturas frecuentes con cache local TTL corto (30-90s).
+- Payloads de dashboard acotados para UI.
+- `map` con limite y tope maximo (`500`).
+- Logs de sync y cache con campos de trazabilidad (region, indicador, status, latencia, hit/miss).
 
-```json
-{
-  "regionId": "REGION_ID",
-  "anio": 2026,
-  "hectareasPerdidas": 960.5,
-  "fuente": "Global Forest Watch"
-}
-```
+## Testing
 
-### Crear alerta de calor
+Incluye:
 
-`POST /api/alerts`
-
-```json
-{
-  "regionId": "REGION_ID",
-  "latitud": -39.81,
-  "longitud": -73.24,
-  "fuente": "NASA FIRMS",
-  "descripcion": "Foco de calor detectado en zona de interfaz"
-}
-```
-
-### Crear regla
-
-`POST /api/rules`
-
-```json
-{
-  "nombre": "Regla Sur 2026",
-  "regionId": "REGION_ID",
-  "umbralPorcentajePerdida": 0.8,
-  "umbralEventosCalor": 4,
-  "activa": true
-}
-```
-
-## Notas
-
-- Se incluye `CommandLineRunner` de seed para datos iniciales cuando la base esta vacia.
-- CORS habilitado para el frontend definido por `FRONTEND_URL`.
-- Seguridad JWT no implementada aun (placeholder listo para fase siguiente).
-- Integraciones externas (Global Forest Watch y NASA FIRMS) quedan como servicios placeholder.
-
+- Unit tests:
+  - cliente `openeo-service` con `MockWebServer`
+  - sync service
+  - snapshot service
+- Integration tests:
+  - nuevos endpoints dashboard (MockMvc)
+  - repositorios e indices de colecciones nuevas
