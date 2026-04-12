@@ -11,6 +11,7 @@ import com.simfat.backend.repository.HeatAlertEventRepository;
 import com.simfat.backend.repository.RegionRepository;
 import java.time.LocalDateTime;
 import java.util.List;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -23,9 +24,14 @@ public class DataSeederConfig {
         RegionRepository regionRepository,
         ForestLossRecordRepository forestLossRepository,
         HeatAlertEventRepository heatAlertRepository,
-        AlertRuleRepository alertRuleRepository
+        AlertRuleRepository alertRuleRepository,
+        @Value("${app.seed.exam.enabled:false}") boolean examImportEnabled
     ) {
         return args -> {
+            if (examImportEnabled) {
+                return;
+            }
+
             if (regionRepository.count() > 0 || forestLossRepository.count() > 0 || heatAlertRepository.count() > 0) {
                 return;
             }
@@ -110,4 +116,3 @@ public class DataSeederConfig {
         return event;
     }
 }
-
