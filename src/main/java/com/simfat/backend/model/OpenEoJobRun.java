@@ -19,10 +19,15 @@ public class OpenEoJobRun {
     @Indexed(unique = true)
     private String jobId;
 
+    @Indexed
     private String regionId;
+
+    @Indexed
     private IndicatorType indicator;
     private LocalDateTime periodStart;
     private LocalDateTime periodEnd;
+
+    @Indexed
     private String status;
     private LocalDateTime requestedAt;
     private LocalDateTime updatedAt;

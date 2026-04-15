@@ -11,6 +11,7 @@ public class IndicatorLatestDTO {
     private String unit;
     private String quality;
     private String source;
+    private boolean cached;
 
     public String getRegionId() {
         return regionId;
@@ -66,5 +67,13 @@ public class IndicatorLatestDTO {
 
     public void setSource(String source) {
         this.source = source;
+    }
+
+    public boolean isCached() {
+        return cached;
+    }
+
+    public void setCached(boolean cached) {
+        this.cached = cached;
     }
 }

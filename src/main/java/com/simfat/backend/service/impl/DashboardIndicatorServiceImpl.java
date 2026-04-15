@@ -1,6 +1,7 @@
 package com.simfat.backend.service.impl;
 
 import com.simfat.backend.dto.DataFreshnessDTO;
+import com.simfat.backend.dto.DataFreshnessStatus;
 import com.simfat.backend.dto.IndicatorLatestDTO;
 import com.simfat.backend.dto.IndicatorMapPointDTO;
 import com.simfat.backend.dto.IndicatorMapResponseDTO;
@@ -21,11 +22,9 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.temporal.TemporalAdjusters;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 
@@ -68,6 +67,7 @@ public class DashboardIndicatorServiceImpl implements DashboardIndicatorService 
                 dto.setQuality(latest.getQuality());
                 dto.setSource(latest.getSource());
             }
+            dto.setCached(true);
             return dto;
         });
     }
@@ -75,8 +75,8 @@ public class DashboardIndicatorServiceImpl implements DashboardIndicatorService 
     @Override
     public IndicatorSeriesDTO getSeries(String regionId, IndicatorType indicator, String from, String to, String granularity) {
         validateRegionId(regionId);
-        LocalDate fromDate = parseDate(from, "from");
-        LocalDate toDate = parseDate(to, "to");
+        LocalDate toDate = parseDateOrDefault(to, LocalDate.now(), "to");
+        LocalDate fromDate = parseDateOrDefault(from, toDate.minusDays(29), "from");
         String normalizedGranularity = normalizeGranularity(granularity);
         validateRange(fromDate, toDate);
 
@@ -102,7 +102,7 @@ public class DashboardIndicatorServiceImpl implements DashboardIndicatorService 
                     .orElse(0.0);
 
                 IndicatorSeriesPointDTO point = new IndicatorSeriesPointDTO();
-                point.setObservedAt(entry.getKey());
+                point.setTs(entry.getKey());
                 point.setValue(roundTwoDecimals(average));
                 return point;
             })
@@ -121,8 +121,8 @@ public class DashboardIndicatorServiceImpl implements DashboardIndicatorService 
     @Override
     public IndicatorMapResponseDTO getMap(IndicatorType indicator, String from, String to, Integer limit) {
         int resolvedLimit = normalizeLimit(limit);
-        LocalDate fromDate = parseDate(from, "from");
-        LocalDate toDate = parseDate(to, "to");
+        LocalDate fromDate = parseDateRequired(from, "from");
+        LocalDate toDate = parseDateRequired(to, "to");
         validateRange(fromDate, toDate);
 
         String key = "map|" + indicator + "|" + fromDate + "|" + toDate + "|" + resolvedLimit;
@@ -166,9 +166,15 @@ public class DashboardIndicatorServiceImpl implements DashboardIndicatorService 
 
             DataFreshnessDTO dto = new DataFreshnessDTO();
             dto.setRegionId(regionId);
-            dto.setDataFreshnessSeconds(snapshot.getDataFreshnessSeconds());
+            Long ageSeconds = snapshot.getDataFreshnessSeconds();
+            dto.setAgeSeconds(ageSeconds);
+            dto.setDataFreshnessSeconds(ageSeconds);
             dto.setComputedAt(snapshot.getComputedAt());
-            dto.setStale(snapshot.getDataFreshnessSeconds() == null || snapshot.getDataFreshnessSeconds() > 3_600);
+            dto.setLastUpdate(resolveLastUpdate(snapshot));
+
+            DataFreshnessStatus status = resolveStatus(ageSeconds);
+            dto.setStatus(status);
+            dto.setStale(DataFreshnessStatus.STALE.equals(status) || DataFreshnessStatus.EMPTY.equals(status));
             return dto;
         });
     }
@@ -179,15 +185,22 @@ public class DashboardIndicatorServiceImpl implements DashboardIndicatorService 
         }
     }
 
-    private LocalDate parseDate(String value, String fieldName) {
+    private LocalDate parseDateOrDefault(String value, LocalDate defaultValue, String fieldName) {
         if (value == null || value.isBlank()) {
-            throw new BadRequestException(fieldName + " es obligatorio con formato YYYY-MM-DD");
+            return defaultValue;
         }
         try {
             return LocalDate.parse(value);
         } catch (Exception ex) {
             throw new BadRequestException(fieldName + " invalido. Usa formato YYYY-MM-DD");
         }
+    }
+
+    private LocalDate parseDateRequired(String value, String fieldName) {
+        if (value == null || value.isBlank()) {
+            throw new BadRequestException(fieldName + " es obligatorio con formato YYYY-MM-DD");
+        }
+        return parseDateOrDefault(value, LocalDate.now(), fieldName);
     }
 
     private void validateRange(LocalDate from, LocalDate to) {
@@ -229,5 +242,22 @@ public class DashboardIndicatorServiceImpl implements DashboardIndicatorService 
 
     private double roundTwoDecimals(double value) {
         return Math.round(value * 100.0) / 100.0;
+    }
+
+    private DataFreshnessStatus resolveStatus(Long ageSeconds) {
+        if (ageSeconds == null) {
+            return DataFreshnessStatus.EMPTY;
+        }
+        if (ageSeconds <= 3_600) {
+            return DataFreshnessStatus.FRESH;
+        }
+        return DataFreshnessStatus.STALE;
+    }
+
+    private LocalDateTime resolveLastUpdate(DashboardRegionSnapshot snapshot) {
+        if (snapshot.getComputedAt() == null || snapshot.getDataFreshnessSeconds() == null) {
+            return null;
+        }
+        return snapshot.getComputedAt().minusSeconds(snapshot.getDataFreshnessSeconds());
     }
 }

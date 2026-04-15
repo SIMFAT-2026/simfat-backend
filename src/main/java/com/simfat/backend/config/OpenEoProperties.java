@@ -9,6 +9,7 @@ public class OpenEoProperties {
 
     private Service service = new Service();
     private Sync sync = new Sync();
+    private Aoi aoi = new Aoi();
 
     public Service getService() {
         return service;
@@ -24,6 +25,14 @@ public class OpenEoProperties {
 
     public void setSync(Sync sync) {
         this.sync = sync;
+    }
+
+    public Aoi getAoi() {
+        return aoi;
+    }
+
+    public void setAoi(Aoi aoi) {
+        this.aoi = aoi;
     }
 
     public static class Service {
@@ -52,6 +61,7 @@ public class OpenEoProperties {
 
         private boolean enabled = true;
         private String cron = "0 */15 * * * *";
+        private boolean placeholderValueEnabled = false;
 
         public boolean isEnabled() {
             return enabled;
@@ -67,6 +77,28 @@ public class OpenEoProperties {
 
         public void setCron(String cron) {
             this.cron = cron;
+        }
+
+        public boolean isPlaceholderValueEnabled() {
+            return placeholderValueEnabled;
+        }
+
+        public void setPlaceholderValueEnabled(boolean placeholderValueEnabled) {
+            this.placeholderValueEnabled = placeholderValueEnabled;
+        }
+    }
+
+    public static class Aoi {
+
+        // Format: CL-15:-70.8,-19.2,-69.2,-18.1;CL-1:-70.5,-21.0,-69.8,-20.2
+        private String bboxMap = "";
+
+        public String getBboxMap() {
+            return bboxMap;
+        }
+
+        public void setBboxMap(String bboxMap) {
+            this.bboxMap = bboxMap;
         }
     }
 }

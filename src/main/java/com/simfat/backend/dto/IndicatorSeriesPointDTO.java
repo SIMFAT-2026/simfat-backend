@@ -4,15 +4,15 @@ import java.time.LocalDateTime;
 
 public class IndicatorSeriesPointDTO {
 
-    private LocalDateTime observedAt;
+    private LocalDateTime ts;
     private Double value;
 
-    public LocalDateTime getObservedAt() {
-        return observedAt;
+    public LocalDateTime getTs() {
+        return ts;
     }
 
-    public void setObservedAt(LocalDateTime observedAt) {
-        this.observedAt = observedAt;
+    public void setTs(LocalDateTime ts) {
+        this.ts = ts;
     }
 
     public Double getValue() {
@@ -21,5 +21,14 @@ public class IndicatorSeriesPointDTO {
 
     public void setValue(Double value) {
         this.value = value;
+    }
+
+    // Backward compatibility with previous payload field name.
+    public LocalDateTime getObservedAt() {
+        return ts;
+    }
+
+    public void setObservedAt(LocalDateTime observedAt) {
+        this.ts = observedAt;
     }
 }

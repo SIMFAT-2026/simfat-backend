@@ -67,10 +67,14 @@ public class DashboardController {
     }
 
     @PostMapping("/sync/run")
-    public ResponseEntity<ApiResponse<SyncRunResponseDTO>> runSync(@RequestParam(required = false) String regionId) {
+    public ResponseEntity<ApiResponse<SyncRunResponseDTO>> runSync(
+        @RequestParam(required = false) String regionId,
+        @RequestParam(required = false) String from,
+        @RequestParam(required = false) String to
+    ) {
         return ResponseEntity.ok(ApiResponse.ok(
             "Sync dashboard ejecutado correctamente",
-            openEoSyncService.runSync(regionId)
+            openEoSyncService.runSync(regionId, from, to)
         ));
     }
 
@@ -89,8 +93,8 @@ public class DashboardController {
     public ResponseEntity<ApiResponse<IndicatorSeriesDTO>> getIndicatorSeries(
         @RequestParam String regionId,
         @RequestParam String indicator,
-        @RequestParam String from,
-        @RequestParam String to,
+        @RequestParam(required = false) String from,
+        @RequestParam(required = false) String to,
         @RequestParam(defaultValue = "day") String granularity
     ) {
         return ResponseEntity.ok(ApiResponse.ok(

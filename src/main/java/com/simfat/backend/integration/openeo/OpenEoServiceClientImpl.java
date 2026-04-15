@@ -55,19 +55,70 @@ public class OpenEoServiceClientImpl implements OpenEoServiceClient {
     }
 
     @Override
+    public OpenEoIndicatorLatestResponse fetchLatestIndicator(IndicatorType indicator, OpenEoIndicatorLatestRequest request) {
+        String indicatorPath = indicator.name();
+        JsonNode responseBody = executeWithRetry(
+            () -> openEoRestClient.post()
+                .uri("/openeo/indicators/latest/" + indicatorPath)
+                .body(request)
+                .retrieve()
+                .body(JsonNode.class),
+            "POST /openeo/indicators/latest/" + indicatorPath
+        );
+
+        OpenEoIndicatorLatestResponse response = new OpenEoIndicatorLatestResponse();
+        response.setValue(readDouble(responseBody, "value"));
+        response.setMeasuredAt(readDateTime(responseBody, "measuredAt", "measured_at", "observedAt", "observed_at", "timestamp"));
+        response.setCollectionId(readText(responseBody, "collectionId", "collection_id"));
+        response.setCached(readBoolean(responseBody, "cached"));
+        response.setSource(readText(responseBody, "source"));
+        response.setQuality(readText(responseBody, "quality"));
+        response.setUnit(readText(responseBody, "unit"));
+        response.setErrorCode(readText(responseBody, "errorCode", "error_code"));
+        response.setErrorMessage(readText(responseBody, "errorMessage", "error_message", "detail"));
+        return response;
+    }
+
+    @Override
+    public OpenEoJobSubmissionResult createNdviJob(String regionId, String aoi, String periodStart, String periodEnd) {
+        return createJob("ndvi", regionId, aoi, periodStart, periodEnd);
+    }
+
+    @Override
+    public OpenEoJobSubmissionResult createNdmiJob(String regionId, String aoi, String periodStart, String periodEnd) {
+        return createJob("ndmi", regionId, aoi, periodStart, periodEnd);
+    }
+
+    @Override
     public OpenEoJobSubmissionResult submitJob(IndicatorType indicator, OpenEoJobRequest request) {
+        String periodStart = request.getPeriodStart() != null ? request.getPeriodStart().toString() : null;
+        String periodEnd = request.getPeriodEnd() != null ? request.getPeriodEnd().toString() : null;
+        if (IndicatorType.NDVI.equals(indicator)) {
+            return createNdviJob(request.getRegionId(), request.getAoi(), periodStart, periodEnd);
+        }
+        return createNdmiJob(request.getRegionId(), request.getAoi(), periodStart, periodEnd);
+    }
+
+    private OpenEoJobSubmissionResult createJob(String indicatorPath, String regionId, String aoi, String periodStart, String periodEnd) {
         ObjectNode payload = objectMapper.createObjectNode();
-        payload.put("regionId", request.getRegionId());
-        payload.put("periodStart", request.getPeriodStart().toString());
-        payload.put("periodEnd", request.getPeriodEnd().toString());
+        payload.put("regionId", regionId);
+        if (aoi != null && !aoi.isBlank()) {
+            payload.put("aoi", aoi);
+        }
+        if (periodStart != null) {
+            payload.put("periodStart", periodStart);
+        }
+        if (periodEnd != null) {
+            payload.put("periodEnd", periodEnd);
+        }
 
         JsonNode responseBody = executeWithRetry(
             () -> openEoRestClient.post()
-                .uri("/jobs/" + indicator.name().toLowerCase())
+                .uri("/jobs/" + indicatorPath)
                 .body(payload)
                 .retrieve()
                 .body(JsonNode.class),
-            "POST /jobs/" + indicator.name().toLowerCase()
+            "POST /jobs/" + indicatorPath
         );
 
         return parseSubmissionResult(responseBody);
@@ -158,16 +209,9 @@ public class OpenEoServiceClientImpl implements OpenEoServiceClient {
     }
 
     private String readText(JsonNode body, String... keys) {
-        for (String key : keys) {
-            JsonNode valueNode = body.get(key);
-            if (valueNode != null && !valueNode.isNull() && !valueNode.asText().isBlank()) {
-                return valueNode.asText();
-            }
-        }
-        JsonNode resultNode = body.get("result");
-        if (resultNode != null && resultNode.isObject()) {
+        for (JsonNode candidate : candidateNodes(body)) {
             for (String key : keys) {
-                JsonNode valueNode = resultNode.get(key);
+                JsonNode valueNode = candidate.get(key);
                 if (valueNode != null && !valueNode.isNull() && !valueNode.asText().isBlank()) {
                     return valueNode.asText();
                 }
@@ -177,15 +221,20 @@ public class OpenEoServiceClientImpl implements OpenEoServiceClient {
     }
 
     private Double readDouble(JsonNode body, String key) {
-        JsonNode node = body.get(key);
-        if (node != null && node.isNumber()) {
-            return node.doubleValue();
+        for (JsonNode candidate : candidateNodes(body)) {
+            JsonNode node = candidate.get(key);
+            if (node != null && node.isNumber()) {
+                return node.doubleValue();
+            }
         }
-        JsonNode resultNode = body.get("result");
-        if (resultNode != null && resultNode.isObject()) {
-            JsonNode nested = resultNode.get(key);
-            if (nested != null && nested.isNumber()) {
-                return nested.doubleValue();
+        return null;
+    }
+
+    private Boolean readBoolean(JsonNode body, String key) {
+        for (JsonNode candidate : candidateNodes(body)) {
+            JsonNode node = candidate.get(key);
+            if (node != null && node.isBoolean()) {
+                return node.booleanValue();
             }
         }
         return null;
@@ -205,6 +254,25 @@ public class OpenEoServiceClientImpl implements OpenEoServiceClient {
 
     private String defaultText(String input, String fallback) {
         return (input == null || input.isBlank()) ? fallback : input;
+    }
+
+    private JsonNode[] candidateNodes(JsonNode body) {
+        JsonNode resultNode = body != null ? body.get("result") : null;
+        JsonNode dataNode = body != null ? body.get("data") : null;
+
+        if (body != null && body.isObject()) {
+            if (resultNode != null && resultNode.isObject() && dataNode != null && dataNode.isObject()) {
+                return new JsonNode[] { body, resultNode, dataNode };
+            }
+            if (resultNode != null && resultNode.isObject()) {
+                return new JsonNode[] { body, resultNode };
+            }
+            if (dataNode != null && dataNode.isObject()) {
+                return new JsonNode[] { body, dataNode };
+            }
+            return new JsonNode[] { body };
+        }
+        return new JsonNode[0];
     }
 
     private void sleep(long millis) {

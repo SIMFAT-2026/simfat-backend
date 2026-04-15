@@ -10,9 +10,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.simfat.backend.dto.DataFreshnessDTO;
+import com.simfat.backend.dto.DataFreshnessStatus;
 import com.simfat.backend.dto.IndicatorLatestDTO;
 import com.simfat.backend.dto.IndicatorMapResponseDTO;
 import com.simfat.backend.dto.IndicatorSeriesDTO;
+import com.simfat.backend.dto.IndicatorSeriesPointDTO;
 import com.simfat.backend.dto.SyncRunResponseDTO;
 import com.simfat.backend.service.DashboardIndicatorService;
 import com.simfat.backend.service.DashboardService;
@@ -47,6 +49,7 @@ class DashboardControllerIntegrationTest {
         latest.setIndicator("NDVI");
         latest.setValue(0.67);
         latest.setObservedAt(LocalDateTime.now());
+        latest.setCached(true);
         when(dashboardIndicatorService.getLatest(eq("region-1"), any())).thenReturn(latest);
 
         mockMvc.perform(get("/api/dashboard/indicators/latest")
@@ -55,7 +58,8 @@ class DashboardControllerIntegrationTest {
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.success", is(true)))
             .andExpect(jsonPath("$.data.regionId", is("region-1")))
-            .andExpect(jsonPath("$.data.indicator", is("NDVI")));
+            .andExpect(jsonPath("$.data.indicator", is("NDVI")))
+            .andExpect(jsonPath("$.data.cached", is(true)));
     }
 
     @Test
@@ -63,7 +67,7 @@ class DashboardControllerIntegrationTest {
         SyncRunResponseDTO syncRunResponse = new SyncRunResponseDTO();
         syncRunResponse.setTotalRegions(1);
         syncRunResponse.setTotalJobsAccepted(2);
-        when(openEoSyncService.runSync("region-1")).thenReturn(syncRunResponse);
+        when(openEoSyncService.runSync("region-1", null, null)).thenReturn(syncRunResponse);
 
         mockMvc.perform(post("/api/dashboard/sync/run").param("regionId", "region-1"))
             .andExpect(status().isOk())
@@ -78,6 +82,10 @@ class DashboardControllerIntegrationTest {
         series.setRegionId("region-1");
         series.setIndicator("NDMI");
         series.setGranularity("week");
+        IndicatorSeriesPointDTO point = new IndicatorSeriesPointDTO();
+        point.setTs(LocalDateTime.parse("2026-01-06T00:00:00"));
+        point.setValue(0.52);
+        series.setPoints(List.of(point));
         when(dashboardIndicatorService.getSeries(eq("region-1"), any(), eq("2026-01-01"), eq("2026-01-31"), eq("week")))
             .thenReturn(series);
 
@@ -89,6 +97,7 @@ class DashboardControllerIntegrationTest {
         DataFreshnessDTO freshness = new DataFreshnessDTO();
         freshness.setRegionId("region-1");
         freshness.setStale(false);
+        freshness.setStatus(DataFreshnessStatus.FRESH);
         when(dashboardIndicatorService.getDataFreshness("region-1")).thenReturn(freshness);
 
         mockMvc.perform(get("/api/dashboard/indicators/series")
@@ -98,7 +107,8 @@ class DashboardControllerIntegrationTest {
                 .param("to", "2026-01-31")
                 .param("granularity", "week"))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$.data.granularity", is("week")));
+            .andExpect(jsonPath("$.data.granularity", is("week")))
+            .andExpect(jsonPath("$.data.points[0].ts", is("2026-01-06T00:00:00")));
 
         mockMvc.perform(get("/api/dashboard/indicators/map")
                 .param("indicator", "NDMI")
@@ -110,6 +120,7 @@ class DashboardControllerIntegrationTest {
 
         mockMvc.perform(get("/api/dashboard/data-freshness").param("regionId", "region-1"))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$.data.regionId", is("region-1")));
+            .andExpect(jsonPath("$.data.regionId", is("region-1")))
+            .andExpect(jsonPath("$.data.status", is("FRESH")));
     }
 }

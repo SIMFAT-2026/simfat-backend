@@ -10,7 +10,7 @@ import static org.mockito.Mockito.when;
 
 import com.simfat.backend.config.OpenEoProperties;
 import com.simfat.backend.dto.SyncRunResponseDTO;
-import com.simfat.backend.integration.openeo.OpenEoJobSubmissionResult;
+import com.simfat.backend.integration.openeo.OpenEoIndicatorLatestResponse;
 import com.simfat.backend.integration.openeo.OpenEoServiceClient;
 import com.simfat.backend.model.DashboardRegionSnapshot;
 import com.simfat.backend.model.OpenEoIndicatorObservation;
@@ -24,7 +24,6 @@ import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -61,23 +60,28 @@ class OpenEoSyncServiceImplTest {
     void runSync_savesJobAndObservation_whenValueComesInline() {
         Region region = new Region();
         region.setId("region-1");
+        region.setCodigo("CL-15");
         when(regionRepository.findAll()).thenReturn(List.of(region));
-        when(jobRunRepository.existsByRegionIdAndIndicatorAndPeriodStartAndPeriodEndAndStatusIn(
-            any(),
-            any(),
-            any(),
-            any(),
-            any()
-        )).thenReturn(false);
         when(observationRepository.findByRegionIdAndIndicatorAndObservedAt(any(), any(), any())).thenReturn(Optional.empty());
         when(snapshotService.recomputeSnapshot(any())).thenReturn(new DashboardRegionSnapshot());
 
-        OpenEoJobSubmissionResult result = new OpenEoJobSubmissionResult();
-        result.setJobId("job-001");
-        result.setStatus("completed");
+        OpenEoIndicatorLatestResponse result = new OpenEoIndicatorLatestResponse();
         result.setValue(0.61);
-        when(openEoServiceClient.submitJob(any(), any())).thenReturn(result);
+        result.setSource("openEO");
+        result.setQuality("high");
+        result.setMeasuredAt(java.time.LocalDateTime.parse("2026-04-01T12:00:00"));
+        when(openEoServiceClient.fetchLatestIndicator(any(), any())).thenReturn(result);
 
+        OpenEoProperties properties = new OpenEoProperties();
+        properties.getAoi().setBboxMap("CL-15:-70.8,-19.2,-69.2,-18.1");
+        syncService = new OpenEoSyncServiceImpl(
+            openEoServiceClient,
+            regionRepository,
+            jobRunRepository,
+            observationRepository,
+            snapshotService,
+            properties
+        );
         SyncRunResponseDTO response = syncService.runSync(null);
 
         assertEquals(1, response.getTotalRegions());
@@ -89,22 +93,18 @@ class OpenEoSyncServiceImplTest {
     }
 
     @Test
-    void runSync_skipsWhenAlreadyQueued() {
+    void runSync_doesNotCreateObservation_whenRegionHasNoAoiConfigured() {
         Region region = new Region();
         region.setId("region-2");
+        region.setCodigo("CL-99");
         when(regionRepository.findAll()).thenReturn(List.of(region));
-        when(jobRunRepository.existsByRegionIdAndIndicatorAndPeriodStartAndPeriodEndAndStatusIn(
-            any(),
-            any(),
-            any(),
-            any(),
-            any()
-        )).thenReturn(true);
 
         SyncRunResponseDTO response = syncService.runSync(null);
 
-        assertEquals(2, response.getTotalDeduplicated());
+        assertEquals(2, response.getTotalErrors());
         assertEquals(0, response.getTotalJobsAccepted());
-        verify(openEoServiceClient, never()).submitJob(any(), any());
+        verify(openEoServiceClient, never()).fetchLatestIndicator(any(), any());
+        verify(observationRepository, never()).save(any());
+        verify(snapshotService, never()).recomputeSnapshot(any());
     }
 }
