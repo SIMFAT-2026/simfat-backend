@@ -81,6 +81,16 @@ Autenticacion y seguridad:
 
 API por defecto: `http://localhost:8080`.
 
+### Entornos local vs remoto
+
+El proyecto incluye un script para cargar variables desde archivo:
+
+- `scripts/start-local.ps1 -EnvFile ".env.local"`: levanta con DBs locales.
+- `scripts/start-local.ps1 -EnvFile ".env.remote"`: levanta con Supabase + Atlas.
+
+Nota: `mvn spring-boot:run` no siempre carga `.env` automaticamente en PowerShell.
+Por eso se recomienda usar el script anterior para desarrollo.
+
 ## Endpoints dashboard
 
 Compatibles existentes:
