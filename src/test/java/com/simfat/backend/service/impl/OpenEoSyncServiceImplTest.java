@@ -61,6 +61,7 @@ class OpenEoSyncServiceImplTest {
         Region region = new Region();
         region.setId("region-1");
         region.setCodigo("CL-15");
+        region.setAoiBbox(List.of(-70.8, -19.2, -69.2, -18.1));
         when(regionRepository.findAll()).thenReturn(List.of(region));
         when(observationRepository.findByRegionIdAndIndicatorAndObservedAt(any(), any(), any())).thenReturn(Optional.empty());
         when(snapshotService.recomputeSnapshot(any())).thenReturn(new DashboardRegionSnapshot());
@@ -72,16 +73,6 @@ class OpenEoSyncServiceImplTest {
         result.setMeasuredAt(java.time.LocalDateTime.parse("2026-04-01T12:00:00"));
         when(openEoServiceClient.fetchLatestIndicator(any(), any())).thenReturn(result);
 
-        OpenEoProperties properties = new OpenEoProperties();
-        properties.getAoi().setBboxMap("CL-15:-70.8,-19.2,-69.2,-18.1");
-        syncService = new OpenEoSyncServiceImpl(
-            openEoServiceClient,
-            regionRepository,
-            jobRunRepository,
-            observationRepository,
-            snapshotService,
-            properties
-        );
         SyncRunResponseDTO response = syncService.runSync(null);
 
         assertEquals(1, response.getTotalRegions());

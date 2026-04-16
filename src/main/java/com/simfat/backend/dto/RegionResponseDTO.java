@@ -1,5 +1,7 @@
 package com.simfat.backend.dto;
 
+import java.util.List;
+
 public class RegionResponseDTO {
 
     private String id;
@@ -7,6 +9,7 @@ public class RegionResponseDTO {
     private String codigo;
     private String zona;
     private Double hectareasBosqueReferencia;
+    private List<Double> aoiBbox;
 
     public String getId() {
         return id;
@@ -47,5 +50,12 @@ public class RegionResponseDTO {
     public void setHectareasBosqueReferencia(Double hectareasBosqueReferencia) {
         this.hectareasBosqueReferencia = hectareasBosqueReferencia;
     }
-}
 
+    public List<Double> getAoiBbox() {
+        return aoiBbox;
+    }
+
+    public void setAoiBbox(List<Double> aoiBbox) {
+        this.aoiBbox = aoiBbox;
+    }
+}

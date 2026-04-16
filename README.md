@@ -55,6 +55,8 @@ Integracion openEO:
 - `OPENEO_SYNC_CRON` (default cada 15 min: `0 */15 * * * *`)
 - `OPENEO_AOI_BBOX_MAP` (mapa `regionCode -> bbox`, formato `CL-15:-70.8,-19.2,-69.2,-18.1;...`)
 - `OPENEO_SYNC_PLACEHOLDER_VALUE_ENABLED` (default `false`; solo testing/demo)
+- `OPENEO_SYNC_MIN_REQUEST_INTERVAL_MINUTES` (default `0`; evita llamadas repetidas a openEO dentro de una ventana)
+- `OPENEO_INGEST_AUTH_TOKEN` (opcional; protege `POST /api/indicators/measurements` para ingesta interna desde `openeo-service`)
 
 Autenticacion y seguridad:
 
@@ -107,6 +109,12 @@ Nuevos MVP:
 - `GET /api/dashboard/indicators/series?regionId={id}&indicator=NDVI|NDMI&from=YYYY-MM-DD&to=YYYY-MM-DD&granularity=day|week|month` (`from/to` opcionales, default ultimos 30 dias)
 - `GET /api/dashboard/indicators/map?indicator=NDVI|NDMI&from=YYYY-MM-DD&to=YYYY-MM-DD&limit=500`
 - `GET /api/dashboard/data-freshness?regionId={id}`
+- `POST /api/indicators/measurements` (ingesta interna para `openeo-service`; usa `Authorization: Bearer <OPENEO_INGEST_AUTH_TOKEN>` o `X-OpenEO-Ingest-Token` si el token esta configurado)
+
+Endpoints AOI de regiones:
+
+- `GET /api/regions/aoi/coverage` (estado de cobertura por region: `aoi_db|aoi_env|missing`)
+- `PATCH /api/regions/{id}/aoi` body `{ "aoiBbox": [west,south,east,north] }`
 
 Todas las respuestas usan `ApiResponse<T>`.
 
@@ -252,10 +260,32 @@ curl -X POST http://localhost:8080/api/auth/dev/seed-users \
 - Payloads de dashboard acotados para UI.
 - `map` con limite y tope maximo (`500`).
 - Logs de sync y cache con campos de trazabilidad (region, indicador, status, latencia, hit/miss).
+- Guardrail de consumo openEO configurable con `OPENEO_SYNC_MIN_REQUEST_INTERVAL_MINUTES` para reusar observaciones recientes y reducir costo/tokens.
+
+## Mapa de contratos entre repos
+
+`simfat-web` (frontend) -> `Simfat-backend`:
+- `POST /api/dashboard/sync/run`
+- `GET /api/dashboard/indicators/latest`
+- `GET /api/dashboard/indicators/series`
+- `GET /api/dashboard/indicators/map`
+- `GET /api/dashboard/data-freshness`
+
+`Simfat-backend` -> `openeo-service`:
+- `POST /openeo/indicators/latest/{indicator}` (flujo principal pull)
+- `GET /openeo/capabilities` y `GET /openeo/collections` (probe/debug)
+
+`openeo-service` -> `Simfat-backend`:
+- `POST /api/indicators/measurements` (flujo opcional push/callback para persistir mediciones y traza)
 
 ## AOI por region
 
 El sync solo persiste datos reales cuando la region tiene AOI bbox configurado.
+Prioridad de resolucion:
+
+1. AOI guardado en `regions.aoiBbox` (MongoDB)
+2. Fallback `OPENEO_AOI_BBOX_MAP`
+3. Si no existe AOI valido -> `jobRun` con estado `aoi_missing` y no se llama a openEO
 
 Formato de `OPENEO_AOI_BBOX_MAP`:
 
@@ -270,6 +300,36 @@ Si falta AOI para una region:
 - se registra warning de sync
 - se guarda `jobRun` con estado de error controlado
 - no se crea observacion fake
+
+### Carga masiva de AOI en BD
+
+1. Completa `scripts/aoi-bbox.sample.json` con codigos de region y bbox.
+2. Ejecuta:
+
+```powershell
+.\scripts\regions-aoi-import.ps1 -BackendBaseUrl "http://localhost:8081" -MappingFile ".\scripts\aoi-bbox.sample.json"
+```
+
+3. Verifica:
+
+```bash
+curl http://localhost:8081/api/regions/aoi/coverage
+```
+
+### Seed oficial de regiones Chile (16) + AOI
+
+Para poblar el backend con las 16 regiones administrativas y AOI `bbox` oficiales:
+
+```powershell
+.\scripts\regions-seed-chile-official.ps1 -BackendBaseUrl "http://localhost:8081" -MappingFile ".\scripts\chile-regions-aoi-official.json" -PruneLegacyRegions
+```
+
+Fuente oficial usada en el mapeo:
+- DPA 2023 (IDE Chile / SUBDERE), descargable desde:
+  - `https://www.geoportal.cl/geoportal/catalog/download/912598ad-ac92-35f6-8045-098f214bd9c2`
+
+Metodo:
+- `bbox` por region derivado agregando los poligonos comunales oficiales (`CUT_REG`) en `COMUNAS_v1` (SIRGAS-Chile).
 
 ## Datos reales vs fallback
 

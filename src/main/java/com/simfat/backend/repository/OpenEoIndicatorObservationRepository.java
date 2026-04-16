@@ -12,6 +12,8 @@ public interface OpenEoIndicatorObservationRepository extends MongoRepository<Op
 
     Optional<OpenEoIndicatorObservation> findTopByRegionIdAndIndicatorOrderByObservedAtDesc(String regionId, IndicatorType indicator);
 
+    Optional<OpenEoIndicatorObservation> findTopByRegionIdAndIndicatorOrderByIngestedAtDesc(String regionId, IndicatorType indicator);
+
     List<OpenEoIndicatorObservation> findByRegionIdAndIndicatorAndObservedAtBetweenOrderByObservedAtAsc(
         String regionId,
         IndicatorType indicator,

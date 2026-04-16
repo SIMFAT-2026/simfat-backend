@@ -5,7 +5,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.simfat.backend.exception.OpenEoClientException;
 import com.simfat.backend.model.IndicatorType;
+import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.time.format.DateTimeParseException;
 import java.util.UUID;
 import java.util.function.Supplier;
@@ -248,7 +251,15 @@ public class OpenEoServiceClientImpl implements OpenEoServiceClient {
         try {
             return LocalDateTime.parse(raw);
         } catch (DateTimeParseException ex) {
-            return null;
+            try {
+                return OffsetDateTime.parse(raw).withOffsetSameInstant(ZoneOffset.UTC).toLocalDateTime();
+            } catch (DateTimeParseException ignored) {
+                try {
+                    return Instant.parse(raw).atOffset(ZoneOffset.UTC).toLocalDateTime();
+                } catch (DateTimeParseException ignoredAgain) {
+                    return null;
+                }
+            }
         }
     }
 

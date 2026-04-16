@@ -9,6 +9,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.simfat.backend.exception.OpenEoClientException;
 import com.simfat.backend.model.IndicatorType;
 import java.io.IOException;
+import java.time.LocalDateTime;
 import okhttp3.mockwebserver.MockResponse;
 import okhttp3.mockwebserver.MockWebServer;
 import okhttp3.mockwebserver.RecordedRequest;
@@ -96,7 +97,7 @@ class OpenEoServiceClientImplTest {
             .setResponseCode(200)
             .addHeader("Content-Type", "application/json")
             .setBody(
-                "{\"value\":0.43,\"measuredAt\":\"2026-04-10T12:00:00\",\"collectionId\":\"sentinel-2\",\"cached\":true,\"source\":\"openEO\",\"quality\":\"measured\"}"
+                "{\"value\":0.43,\"measuredAt\":\"2026-04-10T12:00:00Z\",\"collectionId\":\"sentinel-2\",\"cached\":true,\"source\":\"openEO\",\"quality\":\"measured\"}"
             ));
 
         OpenEoIndicatorLatestRequest request = new OpenEoIndicatorLatestRequest();
@@ -112,6 +113,7 @@ class OpenEoServiceClientImplTest {
         assertEquals("openEO", response.getSource());
         assertEquals("measured", response.getQuality());
         assertEquals(true, response.getCached());
+        assertEquals(LocalDateTime.parse("2026-04-10T12:00:00"), response.getMeasuredAt());
         assertEquals("/openeo/indicators/latest/NDMI", server.takeRequest().getPath());
     }
 }

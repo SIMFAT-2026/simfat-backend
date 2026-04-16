@@ -20,6 +20,7 @@ import com.simfat.backend.service.OpenEoSyncService;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -112,6 +113,20 @@ public class OpenEoSyncServiceImpl implements OpenEoSyncService {
 
                 try {
                     LocalDateTime requestedAt = LocalDateTime.now();
+                    if (shouldSkipByRecentObservation(region.getId(), indicator, dateRange, requestedAt)) {
+                        deduplicatedCount++;
+                        logSyncInfo(
+                            region.getId(),
+                            indicator,
+                            SOURCE,
+                            "cached_recent",
+                            null,
+                            durationMs(flowStartNs),
+                            "skipped_recent_observation"
+                        );
+                        continue;
+                    }
+
                     BoundingBox bbox = resolveBoundingBox(region);
                     if (bbox == null) {
                         OpenEoJobRun errorJobRun = buildErrorJobRun(
@@ -383,6 +398,28 @@ public class OpenEoSyncServiceImpl implements OpenEoSyncService {
         return regionId + "|" + indicator + "|" + from + "|" + to;
     }
 
+    private boolean shouldSkipByRecentObservation(
+        String regionId,
+        IndicatorType indicator,
+        DateRange dateRange,
+        LocalDateTime requestedAt
+    ) {
+        int minIntervalMinutes = openEoProperties.getSync().getMinRequestIntervalMinutes();
+        if (minIntervalMinutes <= 0) {
+            return false;
+        }
+
+        LocalDateTime minAllowedIngestedAt = requestedAt.minus(minIntervalMinutes, ChronoUnit.MINUTES);
+        LocalDateTime rangeStart = dateRange.from().atStartOfDay();
+        LocalDateTime rangeEnd = dateRange.to().atTime(23, 59, 59);
+
+        return observationRepository.findTopByRegionIdAndIndicatorOrderByIngestedAtDesc(regionId, indicator)
+            .filter(obs -> obs.getIngestedAt() != null && !obs.getIngestedAt().isBefore(minAllowedIngestedAt))
+            .filter(obs -> obs.getObservedAt() != null && !obs.getObservedAt().isBefore(rangeStart))
+            .filter(obs -> obs.getObservedAt() != null && !obs.getObservedAt().isAfter(rangeEnd))
+            .isPresent();
+    }
+
     private long durationMs(long startedAtNs) {
         return (System.nanoTime() - startedAtNs) / 1_000_000L;
     }
@@ -491,10 +528,33 @@ public class OpenEoSyncServiceImpl implements OpenEoSyncService {
     }
 
     private BoundingBox resolveBoundingBox(Region region) {
+        BoundingBox regionBbox = toBoundingBox(region.getAoiBbox());
+        if (regionBbox != null) {
+            return regionBbox;
+        }
+
         if (region.getCodigo() == null || region.getCodigo().isBlank()) {
             return null;
         }
         return aoiBboxByRegionCode.get(region.getCodigo().trim().toUpperCase());
+    }
+
+    private BoundingBox toBoundingBox(List<Double> bbox) {
+        if (bbox == null || bbox.size() != 4) {
+            return null;
+        }
+        double west = bbox.get(0);
+        double south = bbox.get(1);
+        double east = bbox.get(2);
+        double north = bbox.get(3);
+
+        if (!Double.isFinite(west) || !Double.isFinite(south) || !Double.isFinite(east) || !Double.isFinite(north)) {
+            return null;
+        }
+        if (west >= east || south >= north) {
+            return null;
+        }
+        return new BoundingBox(west, south, east, north);
     }
 
     private record DateRange(LocalDate from, LocalDate to) {

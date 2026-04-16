@@ -74,9 +74,17 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             SecurityContextHolder.getContext().setAuthentication(authentication);
             filterChain.doFilter(request, response);
         } catch (JwtException | IllegalArgumentException ex) {
+            if (isInternalOpenEoIngestPath(request)) {
+                SecurityContextHolder.clearContext();
+                filterChain.doFilter(request, response);
+                return;
+            }
             SecurityContextHolder.clearContext();
             authenticationEntryPoint.commence(request, response, new BadCredentialsException("Token invalido", ex));
         }
     }
-}
 
+    private boolean isInternalOpenEoIngestPath(HttpServletRequest request) {
+        return "/api/indicators/measurements".equals(request.getRequestURI());
+    }
+}

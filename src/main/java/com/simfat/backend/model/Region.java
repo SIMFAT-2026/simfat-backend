@@ -3,6 +3,7 @@ package com.simfat.backend.model;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
+import java.util.List;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
@@ -26,6 +27,7 @@ public class Region {
 
     @Positive(message = "La referencia de bosque debe ser mayor a cero")
     private Double hectareasBosqueReferencia;
+    private List<Double> aoiBbox;
 
     public String getId() {
         return id;
@@ -65,5 +67,13 @@ public class Region {
 
     public void setHectareasBosqueReferencia(Double hectareasBosqueReferencia) {
         this.hectareasBosqueReferencia = hectareasBosqueReferencia;
+    }
+
+    public List<Double> getAoiBbox() {
+        return aoiBbox;
+    }
+
+    public void setAoiBbox(List<Double> aoiBbox) {
+        this.aoiBbox = aoiBbox;
     }
 }

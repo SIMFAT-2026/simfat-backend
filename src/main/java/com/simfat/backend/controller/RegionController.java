@@ -1,6 +1,8 @@
 package com.simfat.backend.controller;
 
 import com.simfat.backend.dto.ApiResponse;
+import com.simfat.backend.dto.RegionAoiCoverageDTO;
+import com.simfat.backend.dto.RegionAoiUpdateRequestDTO;
 import com.simfat.backend.dto.RegionRequestDTO;
 import com.simfat.backend.dto.RegionResponseDTO;
 import com.simfat.backend.service.RegionService;
@@ -11,6 +13,7 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -47,6 +50,19 @@ public class RegionController {
         @Valid @RequestBody RegionRequestDTO region
     ) {
         return ResponseEntity.ok(ApiResponse.ok("Region actualizada correctamente", regionService.update(id, region)));
+    }
+
+    @PatchMapping("/{id}/aoi")
+    public ResponseEntity<ApiResponse<RegionResponseDTO>> updateAoi(
+        @PathVariable String id,
+        @RequestBody RegionAoiUpdateRequestDTO request
+    ) {
+        return ResponseEntity.ok(ApiResponse.ok("AOI de region actualizado correctamente", regionService.updateAoi(id, request)));
+    }
+
+    @GetMapping("/aoi/coverage")
+    public ResponseEntity<ApiResponse<List<RegionAoiCoverageDTO>>> getAoiCoverage() {
+        return ResponseEntity.ok(ApiResponse.ok("Cobertura AOI obtenida correctamente", regionService.getAoiCoverage()));
     }
 
     @DeleteMapping("/{id}")

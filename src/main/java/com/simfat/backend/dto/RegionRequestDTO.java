@@ -3,6 +3,7 @@ package com.simfat.backend.dto;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
+import java.util.List;
 
 public class RegionRequestDTO {
 
@@ -20,6 +21,7 @@ public class RegionRequestDTO {
 
     @Positive(message = "La referencia de bosque debe ser mayor a cero")
     private Double hectareasBosqueReferencia;
+    private List<Double> aoiBbox;
 
     public String getNombre() {
         return nombre;
@@ -52,5 +54,12 @@ public class RegionRequestDTO {
     public void setHectareasBosqueReferencia(Double hectareasBosqueReferencia) {
         this.hectareasBosqueReferencia = hectareasBosqueReferencia;
     }
-}
 
+    public List<Double> getAoiBbox() {
+        return aoiBbox;
+    }
+
+    public void setAoiBbox(List<Double> aoiBbox) {
+        this.aoiBbox = aoiBbox;
+    }
+}

@@ -10,6 +10,7 @@ public class OpenEoProperties {
     private Service service = new Service();
     private Sync sync = new Sync();
     private Aoi aoi = new Aoi();
+    private Ingest ingest = new Ingest();
 
     public Service getService() {
         return service;
@@ -33,6 +34,14 @@ public class OpenEoProperties {
 
     public void setAoi(Aoi aoi) {
         this.aoi = aoi;
+    }
+
+    public Ingest getIngest() {
+        return ingest;
+    }
+
+    public void setIngest(Ingest ingest) {
+        this.ingest = ingest;
     }
 
     public static class Service {
@@ -62,6 +71,7 @@ public class OpenEoProperties {
         private boolean enabled = true;
         private String cron = "0 */15 * * * *";
         private boolean placeholderValueEnabled = false;
+        private int minRequestIntervalMinutes = 0;
 
         public boolean isEnabled() {
             return enabled;
@@ -86,6 +96,14 @@ public class OpenEoProperties {
         public void setPlaceholderValueEnabled(boolean placeholderValueEnabled) {
             this.placeholderValueEnabled = placeholderValueEnabled;
         }
+
+        public int getMinRequestIntervalMinutes() {
+            return minRequestIntervalMinutes;
+        }
+
+        public void setMinRequestIntervalMinutes(int minRequestIntervalMinutes) {
+            this.minRequestIntervalMinutes = minRequestIntervalMinutes;
+        }
     }
 
     public static class Aoi {
@@ -99,6 +117,19 @@ public class OpenEoProperties {
 
         public void setBboxMap(String bboxMap) {
             this.bboxMap = bboxMap;
+        }
+    }
+
+    public static class Ingest {
+
+        private String authToken = "";
+
+        public String getAuthToken() {
+            return authToken;
+        }
+
+        public void setAuthToken(String authToken) {
+            this.authToken = authToken;
         }
     }
 }
