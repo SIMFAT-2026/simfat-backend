@@ -49,6 +49,7 @@ public class OpenEoSyncServiceImpl implements OpenEoSyncService {
     private final OpenEoJobRunRepository jobRunRepository;
     private final OpenEoIndicatorObservationRepository observationRepository;
     private final DashboardSnapshotService snapshotService;
+    private final DashboardQueryCache dashboardQueryCache;
     private final OpenEoProperties openEoProperties;
 
     private final Map<String, BoundingBox> aoiBboxByRegionCode = new ConcurrentHashMap<>();
@@ -65,6 +66,7 @@ public class OpenEoSyncServiceImpl implements OpenEoSyncService {
         OpenEoJobRunRepository jobRunRepository,
         OpenEoIndicatorObservationRepository observationRepository,
         DashboardSnapshotService snapshotService,
+        DashboardQueryCache dashboardQueryCache,
         OpenEoProperties openEoProperties
     ) {
         this.openEoServiceClient = openEoServiceClient;
@@ -72,6 +74,7 @@ public class OpenEoSyncServiceImpl implements OpenEoSyncService {
         this.jobRunRepository = jobRunRepository;
         this.observationRepository = observationRepository;
         this.snapshotService = snapshotService;
+        this.dashboardQueryCache = dashboardQueryCache;
         this.openEoProperties = openEoProperties;
     }
 
@@ -183,6 +186,7 @@ public class OpenEoSyncServiceImpl implements OpenEoSyncService {
 
                     upsertObservation(region.getId(), indicator, normalizedResponse, bbox);
                     snapshotService.recomputeSnapshot(region.getId());
+                    invalidateDashboardCacheForRegion(region.getId());
 
                     OpenEoJobRun finishedJobRun = buildFinishedJobRun(region, indicator, dateRange, requestedAt, normalizedResponse);
                     jobRunRepository.save(finishedJobRun);
@@ -568,5 +572,13 @@ public class OpenEoSyncServiceImpl implements OpenEoSyncService {
         String toCompactString() {
             return west + "," + south + "," + east + "," + north;
         }
+    }
+
+    private void invalidateDashboardCacheForRegion(String regionId) {
+        // Sync writes observations/snapshots; bust short-lived dashboard caches for fast UI consistency.
+        dashboardQueryCache.invalidateByPrefix("latest|" + regionId + "|");
+        dashboardQueryCache.invalidateByPrefix("series|" + regionId + "|");
+        dashboardQueryCache.invalidateByPrefix("freshness|" + regionId);
+        dashboardQueryCache.invalidateByPrefix("map|");
     }
 }
