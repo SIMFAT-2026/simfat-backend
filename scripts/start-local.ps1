@@ -1,5 +1,5 @@
 param(
-    [string]$EnvFile = ".env",
+    [string]$EnvFile = ".env.remote",
     [switch]$DisableOpenEoSync
 )
 
@@ -83,7 +83,7 @@ if (-not (Test-CommandExists "mvn")) {
     throw "No se encontro Maven en PATH. Instala Maven y vuelve a intentar."
 }
 
-$serverPort = 8080
+$serverPort = 8082
 if ($env:SERVER_PORT -and $env:SERVER_PORT.Trim() -ne "") {
     [void][int]::TryParse($env:SERVER_PORT, [ref]$serverPort)
 }
