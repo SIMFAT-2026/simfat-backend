@@ -1,8 +1,19 @@
 ﻿# Documentacion
 
-Estructura oficial de evidencias:
-- Diagramas
-- Gantt
-- Disenos de interfaz
+Repositorio de evidencias tecnico-funcionales para SIMFAT Backend.
 
-Regla de oro: cada evidencia debe incluir fecha y version.
+## Estructura
+
+- `Diagramas/`: arquitectura, MER y otros diagramas versionados.
+- `Gantt/`: planificacion y seguimiento.
+- `Disenos-Interfaz/`: referencias visuales coordinadas con frontend.
+- `diccionario-datos-simfat-backend.md`: catalogo de tablas y colecciones.
+- `scripts-creacion-tablas-e-insercion-datos-prueba.md`: scripts y flujo de carga de datos de prueba.
+- `modelo-logico-actualizacion-2026-04-21.md`: modelo logico posterior a la actualizacion.
+- `qa-evidencias-iteracion-2026-04-21.md`: evidencia de QA tecnico para la iteracion.
+- `CHECKLIST-EVIDENCIAS.md`: control de estado de entrega DUOC.
+
+## Regla de versionado
+
+- Toda evidencia debe incluir fecha y version.
+- Formato sugerido: `AAAA-MM-DD_nombre_vN.ext`.
