@@ -2,6 +2,7 @@ package com.simfat.backend.dto;
 
 import com.simfat.backend.model.CitizenReportStatus;
 import java.time.LocalDateTime;
+import java.util.List;
 
 public class CitizenReportResponseDTO {
 
@@ -13,6 +14,7 @@ public class CitizenReportResponseDTO {
     private Double longitude;
     private CitizenReportStatus status;
     private Integer photoCount;
+    private List<String> photos;
     private LocalDateTime createdAt;
 
     public String getId() {
@@ -77,6 +79,14 @@ public class CitizenReportResponseDTO {
 
     public void setPhotoCount(Integer photoCount) {
         this.photoCount = photoCount;
+    }
+
+    public List<String> getPhotos() {
+        return photos;
+    }
+
+    public void setPhotos(List<String> photos) {
+        this.photos = photos;
     }
 
     public LocalDateTime getCreatedAt() {

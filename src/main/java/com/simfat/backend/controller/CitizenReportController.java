@@ -134,6 +134,7 @@ public class CitizenReportController {
         dto.setLongitude(item.getLongitude());
         dto.setStatus(item.getStatus());
         dto.setPhotoCount(item.getPhotos() == null ? 0 : item.getPhotos().size());
+        dto.setPhotos(item.getPhotos());
         dto.setCreatedAt(item.getCreatedAt());
         return dto;
     }

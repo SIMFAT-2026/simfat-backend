@@ -11,6 +11,7 @@ Repositorio de evidencias tecnico-funcionales para SIMFAT Backend.
 - `scripts-creacion-tablas-e-insercion-datos-prueba.md`: scripts y flujo de carga de datos de prueba.
 - `modelo-logico-actualizacion-2026-04-21.md`: modelo logico posterior a la actualizacion.
 - `qa-evidencias-iteracion-2026-04-21.md`: evidencia de QA tecnico para la iteracion.
+- `seguridad-supabase-rls-2026-04-22.md`: evidencia de hardening por RLS en tablas sensibles.
 - `CHECKLIST-EVIDENCIAS.md`: control de estado de entrega DUOC.
 
 ## Regla de versionado
