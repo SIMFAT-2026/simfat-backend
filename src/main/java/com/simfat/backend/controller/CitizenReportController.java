@@ -10,10 +10,12 @@ import com.simfat.backend.exception.ResourceNotFoundException;
 import com.simfat.backend.model.CitizenReport;
 import com.simfat.backend.model.CitizenReportStatus;
 import com.simfat.backend.repository.CitizenReportRepository;
+import com.simfat.backend.service.SupabaseStorageService;
 import jakarta.validation.Valid;
 import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Objects;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -33,10 +35,16 @@ public class CitizenReportController {
 
     private final CitizenReportRepository citizenReportRepository;
     private final ObjectMapper objectMapper;
+    private final SupabaseStorageService storageService;
 
-    public CitizenReportController(CitizenReportRepository citizenReportRepository, ObjectMapper objectMapper) {
+    public CitizenReportController(
+        CitizenReportRepository citizenReportRepository,
+        ObjectMapper objectMapper,
+        SupabaseStorageService storageService
+    ) {
         this.citizenReportRepository = citizenReportRepository;
         this.objectMapper = objectMapper;
+        this.storageService = storageService;
     }
 
     @GetMapping
@@ -79,7 +87,7 @@ public class CitizenReportController {
         report.setUpdatedAt(LocalDateTime.now());
 
         if (files != null && !files.isEmpty()) {
-            report.setPhotos(files.stream().map(MultipartFile::getOriginalFilename).filter(name -> name != null && !name.isBlank()).toList());
+            report.setPhotos(resolvePhotoReferences(files));
         }
 
         CitizenReport created = citizenReportRepository.save(report);
@@ -121,6 +129,26 @@ public class CitizenReportController {
             }
         } catch (IOException ex) {
             throw new BadRequestException("Payload de reporte ciudadano invalido");
+        }
+    }
+
+    private List<String> resolvePhotoReferences(List<MultipartFile> files) {
+        return files.stream()
+            .map(this::safeUploadReference)
+            .filter(Objects::nonNull)
+            .filter(value -> !value.isBlank())
+            .toList();
+    }
+
+    private String safeUploadReference(MultipartFile file) {
+        try {
+            return storageService.uploadCitizenReportFile(file);
+        } catch (RuntimeException ex) {
+            String name = file == null ? null : file.getOriginalFilename();
+            if (name != null && !name.isBlank()) {
+                return name;
+            }
+            return "archivo";
         }
     }
 

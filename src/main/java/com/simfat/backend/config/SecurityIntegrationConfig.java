@@ -21,7 +21,7 @@ import org.springframework.web.client.RestTemplate;
 
 @Configuration
 @EnableMethodSecurity
-@EnableConfigurationProperties(AuthProperties.class)
+@EnableConfigurationProperties({ AuthProperties.class, SupabaseStorageProperties.class })
 public class SecurityIntegrationConfig {
 
     @Bean

@@ -9,6 +9,7 @@ Fecha de corte: 2026-04-21
 - [x] Documento de scripts para creacion de tablas y carga de datos de prueba.
 - [x] Evidencia de QA tecnico (frontend + backend) documentada.
 - [x] Evidencia de hardening de seguridad (RLS Supabase) documentada.
+- [x] Guia de configuracion de Supabase Storage para persistencia de imagenes.
 - [ ] Gantt actualizado con fecha vigente.
 - [ ] Disenos de interfaz actualizados (si aplica en esta iteracion).
 - [ ] Evidencias visuales (capturas) anexadas en la carpeta correspondiente.
