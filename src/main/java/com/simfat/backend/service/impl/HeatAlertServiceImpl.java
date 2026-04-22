@@ -52,6 +52,18 @@ public class HeatAlertServiceImpl implements HeatAlertService {
     }
 
     @Override
+    public List<HeatAlertResponseDTO> getMap(String regionId, LocalDateTime from, LocalDateTime to, RiskLevel level) {
+        return heatAlertRepository.findAll()
+            .stream()
+            .filter(item -> regionId == null || regionId.isBlank() || regionId.equals(item.getRegionId()))
+            .filter(item -> level == null || level == item.getNivelRiesgo())
+            .filter(item -> from == null || (item.getFechaEvento() != null && !item.getFechaEvento().isBefore(from)))
+            .filter(item -> to == null || (item.getFechaEvento() != null && !item.getFechaEvento().isAfter(to)))
+            .map(this::toResponse)
+            .toList();
+    }
+
+    @Override
     public HeatAlertResponseDTO create(HeatAlertRequestDTO request) {
         ensureRegionExists(request.getRegionId());
         HeatAlertEvent event = new HeatAlertEvent();
@@ -130,4 +142,3 @@ public class HeatAlertServiceImpl implements HeatAlertService {
         return dto;
     }
 }
-
