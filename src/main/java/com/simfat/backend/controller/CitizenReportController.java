@@ -11,6 +11,7 @@ import com.simfat.backend.model.CitizenReport;
 import com.simfat.backend.model.CitizenReportStatus;
 import com.simfat.backend.repository.CitizenReportRepository;
 import com.simfat.backend.service.SupabaseStorageService;
+import com.simfat.backend.service.impl.LocalImageFallbackStorageService;
 import jakarta.validation.Valid;
 import java.io.IOException;
 import java.time.LocalDateTime;
@@ -28,6 +29,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 @RestController
 @RequestMapping("/api/citizen-reports")
@@ -36,15 +38,18 @@ public class CitizenReportController {
     private final CitizenReportRepository citizenReportRepository;
     private final ObjectMapper objectMapper;
     private final SupabaseStorageService storageService;
+    private final LocalImageFallbackStorageService localImageFallbackStorageService;
 
     public CitizenReportController(
         CitizenReportRepository citizenReportRepository,
         ObjectMapper objectMapper,
-        SupabaseStorageService storageService
+        SupabaseStorageService storageService,
+        LocalImageFallbackStorageService localImageFallbackStorageService
     ) {
         this.citizenReportRepository = citizenReportRepository;
         this.objectMapper = objectMapper;
         this.storageService = storageService;
+        this.localImageFallbackStorageService = localImageFallbackStorageService;
     }
 
     @GetMapping
@@ -142,14 +147,29 @@ public class CitizenReportController {
 
     private String safeUploadReference(MultipartFile file) {
         try {
-            return storageService.uploadCitizenReportFile(file);
-        } catch (RuntimeException ex) {
-            String name = file == null ? null : file.getOriginalFilename();
-            if (name != null && !name.isBlank()) {
-                return name;
+            String reference = storageService.uploadCitizenReportFile(file);
+            if (reference != null && !reference.isBlank()) {
+                return reference;
             }
-            return "archivo";
+        } catch (RuntimeException ex) {
+            // En modo demo priorizamos continuidad y visibilidad local de adjuntos.
         }
+        String localReference = localImageFallbackStorageService.storeCitizenReportFile(file);
+        return toAbsoluteReference(localReference);
+    }
+
+    private String toAbsoluteReference(String reference) {
+        if (reference == null || reference.isBlank()) {
+            return reference;
+        }
+        if (reference.startsWith("http://") || reference.startsWith("https://") || reference.startsWith("data:") || reference.startsWith("blob:")) {
+            return reference;
+        }
+        String baseUrl = ServletUriComponentsBuilder.fromCurrentContextPath().build().toUriString();
+        if (reference.startsWith("/")) {
+            return baseUrl + reference;
+        }
+        return baseUrl + "/" + reference;
     }
 
     private CitizenReportResponseDTO toResponse(CitizenReport item) {

@@ -16,6 +16,8 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
+import org.springframework.web.client.RestClientException;
+import org.springframework.web.client.RestClientResponseException;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -37,7 +39,7 @@ public class SupabaseStorageServiceImpl implements SupabaseStorageService {
         }
 
         if (!properties.isEnabled()) {
-            return file.getOriginalFilename() == null ? "archivo" : file.getOriginalFilename();
+            return "";
         }
 
         validateConfig();
@@ -64,6 +66,10 @@ public class SupabaseStorageServiceImpl implements SupabaseStorageService {
             }
 
             return normalizeBaseUrl(properties.getUrl()) + "/storage/v1/object/public/" + properties.getBucket() + "/" + encodedPath;
+        } catch (RestClientResponseException ex) {
+            throw new BadRequestException("Supabase Storage rechazo la subida (" + ex.getRawStatusCode() + ")");
+        } catch (RestClientException ex) {
+            throw new BadRequestException("No fue posible conectar con Supabase Storage");
         } catch (IOException ex) {
             throw new BadRequestException("No fue posible procesar la imagen para storage");
         }
@@ -72,6 +78,9 @@ public class SupabaseStorageServiceImpl implements SupabaseStorageService {
     private void validateConfig() {
         if (!StringUtils.hasText(properties.getUrl()) || !StringUtils.hasText(properties.getServiceKey()) || !StringUtils.hasText(properties.getBucket())) {
             throw new BadRequestException("Configuracion de Supabase Storage incompleta");
+        }
+        if (isPlaceholder(properties.getUrl()) || isPlaceholder(properties.getServiceKey())) {
+            throw new BadRequestException("Configuracion de Supabase Storage invalida: reemplaza placeholders en SUPABASE_URL y SUPABASE_SERVICE_ROLE_KEY");
         }
     }
 
@@ -101,5 +110,16 @@ public class SupabaseStorageServiceImpl implements SupabaseStorageService {
             return "";
         }
         return raw.endsWith("/") ? raw.substring(0, raw.length() - 1) : raw;
+    }
+
+    private boolean isPlaceholder(String value) {
+        if (value == null) {
+            return false;
+        }
+        String normalized = value.trim();
+        return (normalized.startsWith("<") && normalized.endsWith(">"))
+            || normalized.contains("<")
+            || normalized.contains("tu-project-ref")
+            || normalized.contains("service_role_key_real");
     }
 }
