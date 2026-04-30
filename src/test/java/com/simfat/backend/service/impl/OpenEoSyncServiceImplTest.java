@@ -40,6 +40,8 @@ class OpenEoSyncServiceImplTest {
     private OpenEoIndicatorObservationRepository observationRepository;
     @Mock
     private DashboardSnapshotService snapshotService;
+    @Mock
+    private DashboardQueryCache dashboardQueryCache;
 
     private OpenEoSyncServiceImpl syncService;
 
@@ -52,6 +54,7 @@ class OpenEoSyncServiceImplTest {
             jobRunRepository,
             observationRepository,
             snapshotService,
+            dashboardQueryCache,
             properties
         );
     }
